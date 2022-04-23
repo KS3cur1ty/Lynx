@@ -1,3 +1,4 @@
 pycryptodome
 pyscreenshot
 pynput
+hashlib
