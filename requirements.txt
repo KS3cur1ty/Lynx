@@ -1,4 +1,4 @@
 pycryptodome
 pyscreenshot
-pynput
+keyboard
 hashlib
