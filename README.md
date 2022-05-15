@@ -30,17 +30,17 @@ _DISCLAIMER : This tool was made only for educational purposes. I strongly advis
 
 
 ## Features
-- Sends logs by email
+- Sends logs by email or FTP
 - Sends system information 
 - Hybrid Encryption
 - Takes screenshots and sends them
 - Logs are sent every 60 seconds by default
 - No X dependency
+- File shredder integrated
 
 ## Limitations
 - Needs to be run with root permissions
 - Not so stealthy
-- Currently supports only sending logs by email. FTP support will soon be added :)
 
 ## Getting Started
 ### Prerequisites
@@ -60,10 +60,16 @@ By default, the keys are written to the current directory
 ### Configuration
 1. Replace the value of "RSA_PUBLIC_KEY" in [lynx.py](lynx.py) with the content of "public_key.pem" 
 2. Replace the value of "RSA_PRIVATE_KEY" in [decryptor.py](decryptor.py) with the content of "private_key.pem". You can also just set the value of the same variable to an empty string ("").
-3. Set the value of "EMAIL_ADDRESS" in [lynx.py](lynx.py) to your email address.
-4. Set the value of "EMAIL_PASSWORD" in [lynx.py](lynx.py) to your password.
-5. If you using Gmail, just skip this step. Otherwise, change "SMTP_SERVER" in [lynx.py](lynx.py) to the SMTP server of your email provider, also change "SMTP_PORT" in the same file as needed. 
-6. That's it. Lynx is ready to go.
+#### If you want to receive logs by email, follow these steps:
+1. Set the value of "EMAIL_ADDRESS" in [lynx.py](lynx.py) to your email address.
+2. Set the value of "EMAIL_PASSWORD" in [lynx.py](lynx.py) to your password.
+3. If you using Gmail, just skip this step. Otherwise, change "SMTP_SERVER" in [lynx.py](lynx.py) to the SMTP server of your email provider, also change "SMTP_PORT" in the same file as needed. 
+#### If you want to receive logs on your FTP server, follow these steps:
+1. Set the value of "HOST" in [lynx.py](lynx.py) to your FTP server's IP Address.
+2. Set the value of "PORT" in [lynx.py](lynx.py) to your FTP server's port.
+3. Set the value of "USERNAME" in [lynx.py](lynx.py) to your FTP username.
+4. Set the value of "PASSWORD" in in [lynx.py](lynx.py) to your FTP password.
+#### That's it. Lynx is ready to go.
 
 ### Usage
 Run it with Python3:
@@ -80,6 +86,7 @@ Note: [decryptor.py](decryptor.py) will be decrypting your messages. Put your me
 - [ ] Record webcam and microphone
 - [ ] Take screenshots when interesting web pages open
 - [ ] Record mouse and log mouseclicks
+- [x] Add FTP support
 
 ## Contributing
 
