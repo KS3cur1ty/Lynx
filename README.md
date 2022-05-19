@@ -40,9 +40,10 @@ _DISCLAIMER : This tool was made only for educational purposes. I strongly advis
 - Logs are sent every 60 seconds by default
 - No X dependency
 - File shredder integrated
+- Persistence
 
 ## Limitations
-- Needs to be run with root permissions
+- Needs to be run with root (Admin on Windows) permissions
 - Not so stealthy
 
 ## Getting Started
@@ -91,6 +92,7 @@ Note: [decryptor.py](decryptor.py) will be decrypting your messages. Put your me
 - [x] Add Cross-platform support
 - [x] Better keylogging
 - [ ] Stealthier keylogging
+- [x] Persistence
 - [ ] Record webcam and microphone
 - [ ] Take screenshots when interesting web pages open
 - [ ] Record mouse and log mouseclicks
